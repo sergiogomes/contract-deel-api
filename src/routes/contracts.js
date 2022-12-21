@@ -27,9 +27,9 @@ router.get('/', getProfile, async (req, res) => {
   const query = extractProfileQuery(req.profile.dataValues)
   query.status = {[Op.ne]: 'terminated'}
   
-  const contract = await Contract.findAll({where: query})
-  if(!contract) return res.status(404).end()
-  res.json(contract)
+  const contracts = await Contract.findAll({where: query})
+  if(!contracts) return res.status(404).end()
+  res.json(contracts)
 })
 
 module.exports = router

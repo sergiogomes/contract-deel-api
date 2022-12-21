@@ -5,7 +5,7 @@ const {sequelize} = require('./model')
 // const adminRoutes = require('./routes/admin')
 // const balanceRoutes = require('./routes/balances')
 const contractRoutes = require('./routes/contracts')
-// const jobRoutes = require('./routes/jobs')
+const jobRoutes = require('./routes/jobs')
 
 const app = express();
 
@@ -17,6 +17,6 @@ app.set('models', sequelize.models)
 // app.use('/admin', adminRoutes)
 // app.use('/balances', balanceRoutes)
 app.use('/contracts', contractRoutes)
-// app.use('/jobs', jobRoutes)
+app.use('/jobs', jobRoutes)
 
 module.exports = app;
