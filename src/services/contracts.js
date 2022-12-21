@@ -1,4 +1,5 @@
 const {extractProfileQuery} = require('../helpers/extractProfileQuery')
+const {tryit} = require('../helpers/tryit')
 
 const findOneContractById = async (model, contractId, args = {}) => {
   const {profile, query} = args
@@ -7,7 +8,9 @@ const findOneContractById = async (model, contractId, args = {}) => {
     ...query,
     id: contractId,
   }
-  const contract = await model.findOne({where: clauses})
+  const [error, contract] = await tryit(model.findOne({where: clauses}))
+
+  if (error) throw new Error(error)
   
   return contract
 }
@@ -18,7 +21,9 @@ const findAllContracts = async (model, args = {}) => {
     ...extractProfileQuery(profile),
     ...query,
   }
-  const contracts = await model.findAll({where: clauses})
+  const [error, contracts] = await tryit(model.findAll({where: clauses}))
+
+  if (error) throw new Error(error)
   
   return contracts
 }
