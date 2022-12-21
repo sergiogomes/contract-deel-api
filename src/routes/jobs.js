@@ -12,6 +12,7 @@ const router = express.Router()
 router.get('/unpaid', getProfile, async (req, res) => {
   const {Job, Contract} = req.app.get('models')
   const contractQuery = extractProfileQuery(req.profile.dataValues)
+  contractQuery.status = {[Op.ne]: 'terminated'}
   const contractInstance = [{
     model: Contract,
     where: contractQuery
