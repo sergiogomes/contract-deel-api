@@ -1,4 +1,6 @@
 const extractProfileQuery = (profile) => {
+  if (!profile) return {}
+
   const query = {}
 
   if (profile.type === 'client'){

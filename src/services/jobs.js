@@ -18,6 +18,22 @@ const findOneJobById = async (model, jobId, args = {}) => {
   return job
 }
 
+const findOneJob = async (model, args = {}) => {
+  const {profile, query, association, group, attributes, order} = args
+  const clauses = {
+    ...query,
+  }
+  association.where = {
+    ...association.where,
+    ...extractProfileQuery(profile)
+  }
+  const [error, job] = await tryit(model.findOne({where: clauses, include: [association], group, attributes, order}))
+
+  if (error) throw new Error(error)
+  
+  return job
+}
+
 const findAllJobs = async (model, args = {}) => {
   const {profile, query, association} = args
   association.where = {
@@ -39,4 +55,4 @@ const editOneJobById = async (model, jobId, newData) => {
   return resp
 }
 
-module.exports = {findOneJobById, findAllJobs, editOneJobById}
+module.exports = {findOneJob, findOneJobById, findAllJobs, editOneJobById}

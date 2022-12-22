@@ -1,7 +1,7 @@
-const { Op } = require('sequelize')
+const {Sequelize, Op} = require('sequelize')
 
 const {tryit} = require('../helpers/tryit')
-const {findOneJobById, findAllJobs, editOneJobById} = require('../services/jobs')
+const {findOneJob, findOneJobById, findAllJobs, editOneJobById} = require('../services/jobs')
 const {findOneProfileById, editOneProfileById} = require('../services/profiles')
 
 const getUnpaidJobs = async (models, args) => {
@@ -91,4 +91,55 @@ const payForTheJob = async (models, JobId, args) => {
   return jobResp
 }
 
-module.exports = {getUnpaidJobs, payForTheJob}
+const getBestProfession = async (models, args) => {
+  const {start, end} = args.query
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  if (isNaN(startDate) || isNaN(endDate)) {
+    throw new Error('Invalid query time range. Expected query format: "?start=<date>&end=<date>"')
+  }
+  console.log('getBestProfession', start, end)
+
+  const {Job, Contract, Profile} = models
+  args.association = {
+    model: Contract,
+    attributes: ['ContractorId']
+  }
+  args.query = {
+    paid: {[Op.eq]: true},
+    paymentDate: {
+      [Op.gt]: startDate,
+      [Op.lt]: endDate,
+    }
+  }
+  args.group = 'Contract.ContractorId'
+  args.attributes = [[Sequelize.fn('SUM', Sequelize.col('price')), 'priceSum']]
+  args.order = [['price', 'DESC'],]
+
+  const [jobError, job] = await tryit(findOneJob(Job, args))
+
+  if (jobError) throw new Error(jobError)
+
+  const {priceSum} = job.dataValues
+  const {ContractorId} = job.dataValues.Contract.dataValues
+  const [error, profile] = await tryit(findOneProfileById(Profile, ContractorId))
+
+  if (error) throw new Error(error)
+
+  const {profession, firstName, lastName} = profile.dataValues
+
+  return {
+    bestProfession: profession,
+    jobsPaidSum: `$${priceSum}`,
+    fullName: {
+      firstName,
+      lastName
+    },
+    timeRange: {
+      start: startDate,
+      end: endDate,
+    }
+  }
+}
+
+module.exports = {getUnpaidJobs, payForTheJob, getBestProfession}
