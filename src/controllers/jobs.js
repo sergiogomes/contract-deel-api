@@ -35,7 +35,7 @@ const payForTheJob = async (models, JobId, args) => {
   }
   args.query = {paid: {[Op.not]: true}}
   
-  const [jobError,job] = await tryit(findOneJobById(Job, JobId, args))
+  const [jobError, job] = await tryit(findOneJobById(Job, JobId, args))
   if (jobError) {
     throw new Error(jobError)
   }
