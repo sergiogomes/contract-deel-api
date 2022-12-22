@@ -1,8 +1,8 @@
 const express = require('express')
-const { Op } = require('sequelize')
 
 const {getProfile} = require('../middleware/getProfile')
-const {findOneContractById, findAllContracts} = require('../services/contracts')
+const {getContractById, getOpenContracts} = require('../controllers/contracts')
+const {tryit} = require('../helpers/tryit')
 
 const router = express.Router()
 
@@ -11,11 +11,11 @@ const router = express.Router()
 * @returns contract by id
 */
 router.get('/:id', getProfile, async (req, res) => {
-  const {Contract} = req.app.get('models')
   const args = {profile: req.profile.dataValues}
-
-  const contract = await findOneContractById(Contract, req.params.id, args)
-  if(!contract) return res.status(404).end()
+  const [error, contract] = await tryit(getContractById(req.app.get('models'), req.params.id, args))
+  
+  if (error) return res.status(404).end(error.stack)
+  
   res.json(contract)
 })
 
@@ -24,15 +24,11 @@ router.get('/:id', getProfile, async (req, res) => {
 * @returns non terminated contracts
 */
 router.get('/', getProfile, async (req, res) => {
-  const {Contract} = req.app.get('models')
-  const query = {status: {[Op.ne]: 'terminated'}}
-  const args = {
-    profile: req.profile.dataValues,
-    query,
-  }
-  
-  const contracts = await findAllContracts(Contract, args)
-  if(!contracts) return res.status(404).end()
+  const args = {profile: req.profile.dataValues}
+  const [error, contracts] = await tryit(getOpenContracts(req.app.get('models'), args))
+
+  if (error) return res.status(404).end(error.stack)
+
   res.json(contracts)
 })
 

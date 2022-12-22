@@ -1,4 +1,5 @@
 const {extractProfileQuery} = require('../helpers/extractProfileQuery')
+const {tryit} = require('../helpers/tryit')
 
 const findOneJobById = async (model, jobId, args = {}) => {
   const {profile, query, association} = args
@@ -10,9 +11,11 @@ const findOneJobById = async (model, jobId, args = {}) => {
     ...association.where,
     ...extractProfileQuery(profile)
   }
-  const contract = await model.findOne({where: clauses, include: [association]})
+  const [error, job] = await tryit(model.findOne({where: clauses, include: [association]}))
+
+  if (error) throw new Error(error)
   
-  return contract
+  return job
 }
 
 const findAllJobs = async (model, args = {}) => {
@@ -21,13 +24,17 @@ const findAllJobs = async (model, args = {}) => {
     ...association.where,
     ...extractProfileQuery(profile)
   }
-  const jobs = await model.findAll({where: query, include: [association]})
+  const [error, jobs] = await tryit(model.findAll({where: query, include: [association]}))
+
+  if (error) throw new Error(error)
   
   return jobs
 }
 
 const editOneJobById = async (model, jobId, newData) => {
-  const resp = await model.update(newData, {where: {id: jobId}});
+  const [error, resp] = await tryit(model.update(newData, {where: {id: jobId}}))
+
+  if (error) throw new Error(error)
 
   return resp
 }
