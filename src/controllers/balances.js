@@ -1,7 +1,6 @@
-const { Op } = require('sequelize')
-
 const {tryit} = require('../helpers/tryit')
 const {getUnpaidJobs} = require('../controllers/jobs')
+const {editOneProfileById} = require('../services/profiles')
 
 const PERCENTAGE_LIMIT_ABOVE_JOBS_TO_PAY_SUM = 0.25
 
@@ -37,13 +36,20 @@ const depositsMoney = async (models, userId, args) => {
 
   const {deposit} = args.body
   if (deposit > depositLimit) {
-    throw new Error(`Client can not deposit more than 25% his total of jobs to pay: $${depositLimit}`)
+    throw new Error(`Client can not deposit more than 25% his total of jobs to pay. Limit: $${depositLimit} - deposit value: $${deposit}`)
   }
 
+  const {Profile} = models
   const newBalance = balance + deposit
+  const [clientError, clientResp] = await tryit(editOneProfileById(Profile, ClientId, {balance: newBalance}))
+  if (clientError) {
+    throw new Error(clientError)
+  }
+  if (!clientResp) {
+    throw new Error('Failed to update the client')
+  }
 
-  // update user
-
+  return clientResp
 }
 
 module.exports = {depositsMoney}

@@ -11,7 +11,7 @@ const router = express.Router()
 * @description Deposits money into the the the balance of a client
 */
 router.post('/deposit/:userId', getProfile, async (req, res) => {
-  const args = {profile: req.profile.dataValues}
+  const args = {profile: req.profile.dataValues, body: req.body}
   const [error, balance] = await tryit(depositsMoney(req.app.get('models'), req.params.userId, args))
 
   if (error) res.status(404).end(error.stack)
