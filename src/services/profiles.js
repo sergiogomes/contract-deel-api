@@ -1,12 +1,21 @@
+const {tryit} = require('../helpers/tryit')
 
 const findOneProfileById = async (model, profileId) => {
-  const profile = await model.findOne({where: {id: profileId}})
+  const [error, profile] = await tryit(model.findOne({where: {id: profileId}}))
+
+  if (error) {
+    throw new Error(error)
+  }
   
   return profile
 }
 
 const editOneProfileById = async (model, profileId, newData) => {
-  const resp = await model.update(newData, {where: {id: profileId}});
+  const [error, resp] = await tryit(model.update(newData, {where: {id: profileId}}))
+
+  if (error) {
+    throw new Error(error)
+  }
 
   return resp
 }
