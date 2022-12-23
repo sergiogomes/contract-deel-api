@@ -1,4 +1,5 @@
 const {Sequelize, Op} = require('sequelize')
+const { extractProfileQuery } = require('../helpers/extractProfileQuery')
 
 const {tryit} = require('../helpers/tryit')
 const {findOneJob, findOneJobById, findAllJobs, editOneJobById} = require('../services/jobs')
@@ -98,12 +99,12 @@ const getBestProfession = async (models, args) => {
   if (isNaN(startDate) || isNaN(endDate)) {
     throw new Error('Invalid query time range. Expected query format: "?start=<date>&end=<date>"')
   }
-  console.log('getBestProfession', start, end)
 
   const {Job, Contract, Profile} = models
   args.association = {
     model: Contract,
-    attributes: ['ContractorId']
+    attributes: ['ContractorId'],
+    include: {model: Profile, as: 'Contractor'}
   }
   args.query = {
     paid: {[Op.eq]: true},
@@ -120,15 +121,12 @@ const getBestProfession = async (models, args) => {
 
   if (jobError) throw new Error(jobError)
 
-  const {priceSum} = job.dataValues
-  const {ContractorId} = job.dataValues.Contract.dataValues
-  const [error, profile] = await tryit(findOneProfileById(Profile, ContractorId))
-
-  if (error) throw new Error(error)
-
-  const {profession, firstName, lastName} = profile.dataValues
+  const {priceSum, Contract: contract} = job.dataValues
+  const {Contractor} = contract.dataValues
+  const {id, profession, firstName, lastName} = Contractor.dataValues
 
   return {
+    contractorId: id,
     bestProfession: profession,
     jobsPaidSum: `$${priceSum}`,
     fullName: {
@@ -142,4 +140,52 @@ const getBestProfession = async (models, args) => {
   }
 }
 
-module.exports = {getUnpaidJobs, payForTheJob, getBestProfession}
+const getBestClients = async (models, args) => {
+  const {start, end} = args.query
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  if (isNaN(startDate) || isNaN(endDate)) {
+    throw new Error('Invalid query time range. Expected query format: "?start=<date>&end=<date>&limit=<integer>"')
+  }
+
+  args.limit = args.query.limit || 2
+
+  const {Job, Contract, Profile} = models
+  args.association = {
+    model: Contract,
+    attributes: ['ClientId'],
+    include: {model: Profile, as: 'Client'}
+  }
+  args.query = {
+    paid: {[Op.eq]: true},
+    paymentDate: {
+      [Op.gt]: startDate,
+      [Op.lt]: endDate,
+    }
+  }
+  args.group = 'Contract.ClientId'
+  args.attributes = [[Sequelize.fn('SUM', Sequelize.col('price')), 'priceSum']]
+  args.order = [['price', 'DESC'],]
+
+  const [jobError, jobs] = await tryit(findAllJobs(Job, args))
+
+  if (jobError) throw new Error(jobError)
+
+  const bestClients = jobs.reduce((acc, curr) => {
+    const {priceSum, Contract} = curr.dataValues
+    const {Client} = Contract
+    const {id, firstName, lastName} = Client
+
+    acc.push({
+      id,
+      fullName: `${firstName} ${lastName}`,
+      paid: `$${priceSum}`,
+    })
+
+    return acc
+  }, [])
+
+  return bestClients
+}
+
+module.exports = {getUnpaidJobs, payForTheJob, getBestProfession, getBestClients}

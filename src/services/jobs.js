@@ -35,12 +35,12 @@ const findOneJob = async (model, args = {}) => {
 }
 
 const findAllJobs = async (model, args = {}) => {
-  const {profile, query, association} = args
+  const {profile, query, association, group, attributes, order, limit} = args
   association.where = {
     ...association.where,
     ...extractProfileQuery(profile)
   }
-  const [error, jobs] = await tryit(model.findAll({where: query, include: [association]}))
+  const [error, jobs] = await tryit(model.findAll({where: query, include: [association], group, attributes, order, limit}))
 
   if (error) throw new Error(error)
   
